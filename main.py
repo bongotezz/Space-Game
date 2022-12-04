@@ -369,22 +369,6 @@ if __name__ == '__main__':
 					game.score = 0
 					game.endGame()
 
-				keyPressed = pygame.key.get_pressed() # keyboard input for moving the ship
-
-				if keyPressed[pygame.K_w]:
-					direction.y = -1
-				elif keyPressed[pygame.K_s]:
-					direction.y = 1
-				else:
-					direction.y = 0
-
-				if keyPressed[pygame.K_d]:
-					direction.x = 1
-				elif keyPressed[pygame.K_a]:
-					direction.x = -1
-				else:
-					direction.x = 0
-
 				game.player.update(direction,playerFire)
 
 	def playerController(): # controls axis movement only
@@ -410,6 +394,26 @@ if __name__ == '__main__':
 			screen.blit(livesSurface, livesRect)
 			pygame.display.flip()
 			clock.tick(60)
+
+			keyPressed = pygame.key.get_pressed() # keyboard input for moving the ship
+
+			if keyPressed[pygame.K_w]:
+				direction.y = -1
+			elif keyPressed[pygame.K_s]:
+				direction.y = 1
+			else:
+				direction.y = 0
+
+			if keyPressed[pygame.K_d]:
+				direction.x = 1
+			elif keyPressed[pygame.K_a]:
+				direction.x = -1
+			else:
+				direction.x = 0
+
+			if game.holdFire == False and keyPressed:
+				game.player.update(direction,playerFire)
+
 			playerController()
 
 		elif game.gameActive == False and screenDisplayed == 'none':               # If game is inactive
