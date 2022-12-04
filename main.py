@@ -25,6 +25,8 @@ class Game:
     	self.gameOverTimer = 400
     	self.gameOverText = self.font.render('Game Over', False, (255,255,255))
     	self.gameOverTextRect = self.gameOverText.get_rect(center = (WIDTH / 2, HEIGHT / 2 + 100))
+    	self.displayStageTimer = 150
+    	self.stage = 1
 
     	# Enemy setup
     	self.enemies = pygame.sprite.Group()
@@ -135,6 +137,8 @@ class Game:
     		self.explosions.empty()
 
     		self.extraLifeCounter = 1
+    		self.displayStageTimer = 150
+    		self.stage = 1
 
     		highScores.append(self.score)
     		highScores.sort(reverse=True)
@@ -209,10 +213,21 @@ class Game:
     	self.explosions.add(explosion)
     	self.explosionSound.play()
 
+    def displayStage(self):
+    	stageText = self.font.render('Stage ' + str(self.stage), False, (255,255,255))
+    	stageTextRect = stageText.get_rect(center = (WIDTH / 2, HEIGHT / 2 + 100))
+    	if self.displayStageTimer >= 0:
+    		screen.blit(stageText,stageTextRect)
+    		self.displayStageTimer -= 1
+    	else:
+    		self.stage += 1
+    		self.displayStageTimer = 150
+    		self.spawnEnemies()
+
     def run(self):
     	if self.gameActive:
     		if not self.enemies:
-    			self.spawnEnemies()
+    			self.displayStage()
 
     		if self.player:
     			self.player.sprite.lasers.draw(screen) # Draws the player's lasers
@@ -332,7 +347,7 @@ if __name__ == '__main__':
 				sys.exit()
 
 			if game.gameActive == False: # if the game is not active
-				if (event.type == pygame.KEYDOWN and event.key == pygame.K_p) or (event.type == JOYBUTTONDOWN and event.button == 9):
+				if (event.type == pygame.KEYDOWN and event.key == pygame.K_p) or (event.type == JOYBUTTONDOWN and (event.button == 9 or event.button == 7)):
 					game.gameActive = True
 					game.gameOverTimer = 400
 					game.respawnPlayer()
@@ -345,7 +360,7 @@ if __name__ == '__main__':
 
 				if event.type == ENEMYLASER:
 					game.enemyShoot()
-				elif (event.type == JOYBUTTONDOWN and event.button == 1) or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+				elif (event.type == JOYBUTTONDOWN and (event.button == 1 or event.button == 0)) or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
 					playerFire = True
 				elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: # exits active game
 					game.gameActive = False
