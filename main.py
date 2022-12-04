@@ -5,6 +5,7 @@ from enemy import *
 from random import choice, randint
 from laser import *
 from explosion import *
+from pygame.locals import *
 
 class Game:
     def __init__(self):
@@ -16,9 +17,14 @@ class Game:
     	self.extraLifePoints = 25000
     	self.extraLifeCounter = 1
     	self.score = 0
-    	self.highScore = 0
+    	self.lastScore = 0
+    	self.totalEnemiesKilled = 0
     	self.respawnTime = 200 # Used for delay between death and reapawn
     	self.font = pygame.font.Font('font/kenvector_future.ttf',50)
+    	self.gameActive = False
+    	self.gameOverTimer = 400
+    	self.gameOverText = self.font.render('Game Over', False, (255,255,255))
+    	self.gameOverTextRect = self.gameOverText.get_rect(center = (WIDTH / 2, HEIGHT / 2 + 100))
 
     	# Enemy setup
     	self.enemies = pygame.sprite.Group()
@@ -32,8 +38,6 @@ class Game:
     	self.bombDropped = False
     	self.bombs = pygame.sprite.Group()
     	self.bombExplosions = pygame.sprite.Group()
-
-    	self.gameActive = False
 
     	# Music and sounds
     	music = pygame.mixer.Sound('Sounds/music.wav')
@@ -95,6 +99,7 @@ class Game:
     						self.explosions.add(explosion)
     						self.score += enemy.score
     						self.explosionSound.play()
+    						self.totalEnemiesKilled +=1
     					laser.kill()
 
     				bombersHit = pygame.sprite.pygame.sprite.spritecollide(laser,self.bombers,True)
@@ -104,30 +109,28 @@ class Game:
     						self.explosions.add(explosion)
     						self.score += bomber.score
     						self.explosionSound.play()
+    						self.totalEnemiesKilled +=1
     					laser.kill()
 
     	if self.enemyLasers and not self.holdFire:
     		for laser in self.enemyLasers:
     			if pygame.sprite.spritecollide(laser,self.player,False):
     				laser.kill()
-    				self.endGame()
+    				self.playerHit()
     				
     	if self.bombExplosions and not self.holdFire:
     		for explosion in self.bombExplosions:
     			if pygame.sprite.spritecollide(explosion,self.player,False):
     				explosion.kill()
-    				self.endGame()
+    				self.playerHit()
     				
     def endGame(self):
-    	self.lives -= 1
-    	print(self.lives)
-    	self.holdFire = True
+    	
+    	self.gameOverTimer -= 1
 
-    	explosion = Explosion(self.playerSprite.rect.centerx,self.playerSprite.rect.centery,True)
-    	self.explosions.add(explosion)
-    	self.explosionSound.play()
+    	screen.blit(self.gameOverText,self.gameOverTextRect)
 
-    	if self.lives <= 0:
+    	if self.lives <= 0 and self.gameOverTimer <= 0:
     		self.gameActive = False
     		self.enemyLasers.empty()
     		self.enemies.empty()
@@ -137,14 +140,22 @@ class Game:
     		self.playerSprite.lasers.empty()
     		self.explosions.empty()
 
-    		if self.score > self.highScore:
-    			self.highScore = self.score
+    		highScores.append(self.score)
+    		highScores.sort(reverse=True)
+    		if len(highScores) > 9:
+    			del highScores[10]
+    		#print(highScores)
+    		file = open('Saves/HighScores.txt', 'w')
+    		for score in highScores:
+    			file.write(str(score) + '\n')
+    		file.close() # closes file
 
+    		self.lastScore = self.score
     		self.score = 0
 
     def enemyShoot(self):
     	if self.enemies.sprites():
-    		if not self.holdFire:
+    		if not self.holdFire and self.lives > 0:
     			randomEnemy = choice(self.enemies.sprites())
     			if randomEnemy.onScreen:
     				laserSprite = Laser(bounds,False,randomEnemy.rect.centerx,randomEnemy.rect.centery)
@@ -179,6 +190,9 @@ class Game:
     			explosion = Explosion(bomb.rect.centerx,bomb.rect.centery, True)
     			self.bombExplosions.add(explosion)
     			self.explosionSound.play()
+    			self.explosionSound.play()
+    			self.explosionSound.play()
+    			bomb.kill()
 
     def respawnTimer(self):
     	self.respawnTime -= 1
@@ -191,6 +205,14 @@ class Game:
     	if self.extraLifePoints * self.extraLifeCounter <= self.score:
     		self.lives += 1
     		self.extraLifeCounter += 1
+
+    def playerHit(self):
+    	self.lives -= 1
+    	self.holdFire = True
+
+    	explosion = Explosion(self.playerSprite.rect.centerx,self.playerSprite.rect.centery,True)
+    	self.explosions.add(explosion)
+    	self.explosionSound.play()
 
     def run(self):
     	if self.gameActive:
@@ -215,7 +237,7 @@ class Game:
     		self.checkBombDropLocation()
     		self.explodeBomb()
     	
-    		if not self.holdFire:
+    		if not self.holdFire and self.lives > 0:
     			self.player.draw(screen)
 
     		self.enemyLasers.draw(screen)
@@ -231,15 +253,31 @@ class Game:
     		if self.holdFire:
     			self.respawnTimer()
 
+    		if self.lives <= 0:
+    			self.endGame()
 
+
+    def displayHighScores(self,highScores):
+    	YPosition = 10
+    	scoreText = self.font.render('High Scores', False,(255,255,255))
+    	scoreTextRect = scoreText.get_rect(topleft = (950,YPosition))
+    	screen.blit(scoreText,scoreTextRect)
+    	YPosition += 90
+    	i = 0
+    	while i <= 9:
+    		scoreText = self.font.render(str(highScores[i]), False,(255,255,255))
+    		scoreTextRect = scoreText.get_rect(topleft = (950,YPosition))
+    		screen.blit(scoreText,scoreTextRect)
+    		YPosition += 90
+    		i += 1
 
 
 if __name__ == '__main__':
 	pygame.init()
 	WIDTH = 900 # Screen width 900
-	HEIGHT = 1080 # Screen height 1080
+	HEIGHT = 1000 # Screen height 1080
 	bounds = [WIDTH, HEIGHT]
-	screen = pygame.display.set_mode((bounds))
+	screen = pygame.display.set_mode((1400,1000),RESIZABLE)
 	clock = pygame.time.Clock()
 	game = Game()
 	gameName = game.font.render('Space Game', False, (255,255,255))
@@ -259,10 +297,23 @@ if __name__ == '__main__':
 	livesRect = livesSurface.get_rect(center = (WIDTH - 150,50))
 	backgroundSurface = pygame.image.load('Images/background2.png').convert_alpha()
 	backgroundRect = backgroundSurface.get_rect(topleft = (0,0))
+
 	
+	# high scores
+	file = open('Saves/HighScores.txt', 'r')
+	text = file.readlines()
+	highScores = []
+	i = 0
+	while i <= 9:
+		score = int(text[i])
+		highScores.append(score)
+		i += 1
+	file.close()
+	#print(highScores)	
 
 	ENEMYLASER = pygame.USEREVENT + 1
 	pygame.time.set_timer(ENEMYLASER,800)
+	BLACK = (0,0,0)
 
 	while True:
 		for event in pygame.event.get():
@@ -272,30 +323,45 @@ if __name__ == '__main__':
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
 				game.gameActive = True
 				game.respawnPlayer()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+				game.gameActive = False
+				game.lives = 0
+				game.score = 0
+				game.endGame()
 			if event.type == ENEMYLASER:
 				game.enemyShoot()
+		
 
 		if game.gameActive: # If game is active
-			#screen.fill((30,30,30))
 			screen.blit(backgroundSurface,backgroundRect)
 			game.run()
 			scoreSurface = game.font.render('Score ' + str(game.score), False, (255,255,255))
 			screen.blit(scoreSurface,scoreRect)
 			livesSurface = game.font.render('Lives: ' + str(game.lives), False, (255,255,255))
 			screen.blit(livesSurface, livesRect)
+			pygame.draw.rect(screen, BLACK, [WIDTH,0,500,1000])
+			game.displayHighScores(highScores)
 			pygame.display.flip()
 			clock.tick(60)
 		else:               # If game is inactive
-			highScoreDisplay = game.font.render('High Score: ' + str(game.highScore), False, (255,255,255))
-			highScoreDisplayRect = highScoreDisplay.get_rect(center = (WIDTH / 2, 50))
+			lastScoreDisplay = game.font.render('Last Score: ' + str(game.lastScore), False, (255,255,255))
+			lastScoreDisplayRect = lastScoreDisplay.get_rect(center = (WIDTH / 2, 50))
+			totalEnemiesKilledSurface = game.font.render('Enemies Killed: ' + str(game.totalEnemiesKilled), False, (255,255,255))
+			totalEnemiesKilledRect = totalEnemiesKilledSurface.get_rect(center = (WIDTH / 2, 100))
 			screen.fill((30,30,30))
-			screen.blit(highScoreDisplay,highScoreDisplayRect)
+			screen.blit(lastScoreDisplay,lastScoreDisplayRect)
+			screen.blit(totalEnemiesKilledSurface,totalEnemiesKilledRect)
 			screen.blit(gameName,gameNameRect)
 			screen.blit(gameDirections,gameDirectionsRect)
 			screen.blit(gameDirections2,gameDirectionsRect2)
 			screen.blit(gameDirections3,gameDirectionsRect3)
+			pygame.draw.rect(screen, BLACK, [WIDTH + 1,0,500,1000])
+			game.displayHighScores(highScores)
 			game.lives = 3
 			game.playerSprite.reset()
 			pygame.display.flip()
+
+		
+		
 			
 			
