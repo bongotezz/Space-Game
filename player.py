@@ -1,7 +1,7 @@
-# Player
 import pygame
 from os import path
 from laser import *
+from pygame.locals import *
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, bounds):
@@ -13,7 +13,7 @@ class Player(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2()
         self.bounds = bounds
         self.rect.centerx = self.bounds[0] / 2 #width
-        self.rect.bottom = self.bounds[1] - (bounds[1] / 3) #height
+        self.rect.centery = self.bounds[1] - 50 #height
         self.shoot_delay = 380 # delay in ticks for firing lasers -----------------------------------------------
         self.last_shot = pygame.time.get_ticks() # the last time a laser was fired----------------------------
         self.ready = True
@@ -22,31 +22,16 @@ class Player(pygame.sprite.Sprite):
 
         self.laserSound = pygame.mixer.Sound('Sounds/laser.wav')
         self.laserSound.set_volume(0.05)
-       
+
+           
         
-    def getInput(self):
-        # Check for keyboard input
-        keyPressed = pygame.key.get_pressed()
+    def movePlayer(self,direction,playerFire):
+        
+        if direction.magnitude() != 0:
+                direction = direction.normalize()
                 
-        if keyPressed[pygame.K_w]:
-            self.direction.y = -1
-        elif keyPressed[pygame.K_s]:
-            self.direction.y = 1
-        else:
-            self.direction.y = 0
-
-        if keyPressed[pygame.K_d]:
-            self.direction.x = 1
-        elif keyPressed[pygame.K_a]:
-            self.direction.x = -1
-        else:
-            self.direction.x = 0        
-            
-        if self.direction.magnitude() != 0:
-            self.direction = self.direction.normalize()
-
-        self.rect.x += self.direction.x * self.speed
-        self.rect.y += self.direction.y * self.speed
+        self.rect.x += direction.x * self.speed
+        self.rect.y += direction.y * self.speed
         
         # Constrain player
         if self.rect.right > self.bounds[0]:
@@ -58,7 +43,9 @@ class Player(pygame.sprite.Sprite):
         if self.rect.top < self.bounds[1] - self.bounds[1] / 3:
             self.rect.top = self.bounds[1] - self.bounds[1] / 3
 
-        if keyPressed[pygame.K_SPACE]: # firing code
+        
+
+        if playerFire: # firing code
             laser = self.fire("left")
             if laser != "":
                 self.lasers.add(laser)
@@ -66,6 +53,7 @@ class Player(pygame.sprite.Sprite):
             if laser2 != "":
                 self.lasers.add(laser2)
             self.ready = False
+
 
     def rechargeLaser(self):
         if not self.ready:
@@ -91,9 +79,9 @@ class Player(pygame.sprite.Sprite):
 
     def reset(self): # Sets position after death
         self.rect.centerx = self.bounds[0] / 2 #width
-        self.rect.bottom = self.bounds[1] - (self.bounds[1] / 3) #height
+        self.rect.centery = self.bounds[1] - 50 #height
 
-    def update(self):
-        self.getInput()
+    def update(self,direction,playerFire):
+        self.movePlayer(direction,playerFire)
         self.rechargeLaser()
         

@@ -6,6 +6,7 @@ from random import choice, randint
 from laser import *
 from explosion import *
 from pygame.locals import *
+from button import Button
 
 class Game:
     def __init__(self):
@@ -18,7 +19,6 @@ class Game:
     	self.extraLifeCounter = 1
     	self.score = 0
     	self.lastScore = 0
-    	self.totalEnemiesKilled = 0
     	self.respawnTime = 200 # Used for delay between death and reapawn
     	self.font = pygame.font.Font('font/kenvector_future.ttf',50)
     	self.gameActive = False
@@ -99,7 +99,6 @@ class Game:
     						self.explosions.add(explosion)
     						self.score += enemy.score
     						self.explosionSound.play()
-    						self.totalEnemiesKilled +=1
     					laser.kill()
 
     				bombersHit = pygame.sprite.pygame.sprite.spritecollide(laser,self.bombers,True)
@@ -109,7 +108,6 @@ class Game:
     						self.explosions.add(explosion)
     						self.score += bomber.score
     						self.explosionSound.play()
-    						self.totalEnemiesKilled +=1
     					laser.kill()
 
     	if self.enemyLasers and not self.holdFire:
@@ -144,7 +142,6 @@ class Game:
     		highScores.sort(reverse=True)
     		if len(highScores) > 9:
     			del highScores[10]
-    		#print(highScores)
     		file = open('Saves/HighScores.txt', 'w')
     		for score in highScores:
     			file.write(str(score) + '\n')
@@ -219,8 +216,6 @@ class Game:
     		if not self.enemies:
     			self.spawnEnemies()
 
-    		if not self.holdFire:
-    			self.player.update()
     		if self.player:
     			self.player.sprite.lasers.draw(screen) # Draws the player's lasers
 
@@ -260,13 +255,13 @@ class Game:
     def displayHighScores(self,highScores):
     	YPosition = 10
     	scoreText = self.font.render('High Scores', False,(255,255,255))
-    	scoreTextRect = scoreText.get_rect(topleft = (950,YPosition))
+    	scoreTextRect = scoreText.get_rect(center = (bounds[0] / 2,YPosition))
     	screen.blit(scoreText,scoreTextRect)
     	YPosition += 90
     	i = 0
     	while i <= 9:
     		scoreText = self.font.render(str(highScores[i]), False,(255,255,255))
-    		scoreTextRect = scoreText.get_rect(topleft = (950,YPosition))
+    		scoreTextRect = scoreText.get_rect(center = (bounds[0] / 2,YPosition))
     		screen.blit(scoreText,scoreTextRect)
     		YPosition += 90
     		i += 1
@@ -277,27 +272,27 @@ if __name__ == '__main__':
 	WIDTH = 900 # Screen width 900
 	HEIGHT = 1000 # Screen height 1080
 	bounds = [WIDTH, HEIGHT]
-	screen = pygame.display.set_mode((1400,1000),RESIZABLE)
+	screen = pygame.display.set_mode((bounds),RESIZABLE)
 	clock = pygame.time.Clock()
 	game = Game()
-	gameName = game.font.render('Space Game', False, (255,255,255))
-	gameNameRect = gameName.get_rect(center = (WIDTH / 2, HEIGHT / 3))
-	directionsText1 = 'Space to shoot.'
-	directionsText2 = 'WASD to move.'
-	directionsText3 = 'Press P to play.'
-	gameDirections = game.font.render(directionsText1, False, (255,255,255))
-	gameDirectionsRect = gameDirections.get_rect(center = (WIDTH / 2, HEIGHT / 2))
-	gameDirections2 = game.font.render(directionsText2, False, (255,255,255))
-	gameDirectionsRect2 = gameDirections2.get_rect(center = (WIDTH / 2, HEIGHT / 2 - 50))
-	gameDirections3 = game.font.render(directionsText3, False, (255,255,255))
-	gameDirectionsRect3 = gameDirections3.get_rect(center = (WIDTH / 2, HEIGHT / 2 - 100))
 	scoreSurface = game.font.render('Score ' + str(game.score), False, (255,255,255))
 	scoreRect = scoreSurface.get_rect(center = (150, 50))
 	livesSurface = game.font.render('Lives: ' + str(game.lives), False, (255,255,255))
 	livesRect = livesSurface.get_rect(center = (WIDTH - 150,50))
 	backgroundSurface = pygame.image.load('Images/background2.png').convert_alpha()
 	backgroundRect = backgroundSurface.get_rect(topleft = (0,0))
+	splashSurface = pygame.image.load('Images/splashBackground.png').convert_alpha()
+	splashSurfaceRect = splashSurface.get_rect(topleft = (0,0))
 
+	def test():
+		print('test')
+
+	test()
+
+	# joystick stuff
+	direction = pygame.math.Vector2() # for player controls
+	playerFire = False # joystick fire
+	motion = [0, 0] # player joystick axis
 	
 	# high scores
 	file = open('Saves/HighScores.txt', 'r')
@@ -308,29 +303,80 @@ if __name__ == '__main__':
 		score = int(text[i])
 		highScores.append(score)
 		i += 1
-	file.close()
-	#print(highScores)	
+	file.close()	
 
 	ENEMYLASER = pygame.USEREVENT + 1
 	pygame.time.set_timer(ENEMYLASER,800)
-	BLACK = (0,0,0)
+
+	# joystick
+	pygame.joystick.init()
+	joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
+	for joystick in joysticks:
+		print(joystick.get_name())
 
 	while True:
+
+		if abs(motion[0]) < 0.1:
+			motion[0] = 0
+		if abs(motion[1]) < 0.1:
+			motion[1] = 0
+
+		#direction.x = motion[0]
+		#direction.y = motion[1]
+
+		#print(direction.x, direction.y)
+		
+
+		if game.holdFire == False:
+			game.player.update(direction,playerFire)
+
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
 				sys.exit()
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
 				game.gameActive = True
+				game.gameOverTimer = 400
 				game.respawnPlayer()
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
 				game.gameActive = False
+				game.gameOverTimer = -1
 				game.lives = 0
 				game.score = 0
 				game.endGame()
 			if event.type == ENEMYLASER:
 				game.enemyShoot()
-		
+
+			# controller code
+			if game.gameActive:
+				if event.type == JOYBUTTONDOWN:
+					if event.button == 1: # shoot button
+						playerFire = True
+				
+				if event.type == JOYAXISMOTION:
+					#if event.axis < 2:
+						#motion[event.axis] = event.value
+					if event.axis == 0:
+						if event.value < 0: 
+							direction.x = -1
+						elif event.value > 0: 
+							direction.x = 1
+						else:
+							direction.x = 0
+					if event.axis == 1:
+						if event.value < 0: direction.y = -1
+						if event.value > 0: direction.y = 1
+
+				# pass direction to player update
+				if game.holdFire == False:
+					game.player.update(direction,playerFire)
+
+			else: #game not active
+				if event.type == JOYBUTTONDOWN:
+					if event.button == 9:
+						game.gameActive = True
+						game.respawnPlayer()
+
 
 		if game.gameActive: # If game is active
 			screen.blit(backgroundSurface,backgroundRect)
@@ -339,24 +385,44 @@ if __name__ == '__main__':
 			screen.blit(scoreSurface,scoreRect)
 			livesSurface = game.font.render('Lives: ' + str(game.lives), False, (255,255,255))
 			screen.blit(livesSurface, livesRect)
-			pygame.draw.rect(screen, BLACK, [WIDTH,0,500,1000])
-			game.displayHighScores(highScores)
 			pygame.display.flip()
 			clock.tick(60)
+
+			# Player controls
+			keyPressed = pygame.key.get_pressed()
+
+			if keyPressed[pygame.K_w]:
+				direction.y = -1
+			elif keyPressed[pygame.K_s]:
+				direction.y = 1
+			else:
+				direction.y = 0
+
+			if keyPressed[pygame.K_d]:
+				direction.x = 1
+			elif keyPressed[pygame.K_a]:
+				direction.x = -1
+			else:
+				direction.x = 0
+
+
+			if keyPressed[pygame.K_SPACE]: # firing code
+				playerFire = True
+			else:
+				playerFire = False
+
+			# pass direction to player update
+			if game.holdFire == False and keyPressed:
+				game.player.update(direction,playerFire)
+
+
+
+
 		else:               # If game is inactive
 			lastScoreDisplay = game.font.render('Last Score: ' + str(game.lastScore), False, (255,255,255))
-			lastScoreDisplayRect = lastScoreDisplay.get_rect(center = (WIDTH / 2, 50))
-			totalEnemiesKilledSurface = game.font.render('Enemies Killed: ' + str(game.totalEnemiesKilled), False, (255,255,255))
-			totalEnemiesKilledRect = totalEnemiesKilledSurface.get_rect(center = (WIDTH / 2, 100))
-			screen.fill((30,30,30))
+			lastScoreDisplayRect = lastScoreDisplay.get_rect(center = (WIDTH / 2, HEIGHT - 50))
+			screen.blit(splashSurface,splashSurfaceRect)
 			screen.blit(lastScoreDisplay,lastScoreDisplayRect)
-			screen.blit(totalEnemiesKilledSurface,totalEnemiesKilledRect)
-			screen.blit(gameName,gameNameRect)
-			screen.blit(gameDirections,gameDirectionsRect)
-			screen.blit(gameDirections2,gameDirectionsRect2)
-			screen.blit(gameDirections3,gameDirectionsRect3)
-			pygame.draw.rect(screen, BLACK, [WIDTH + 1,0,500,1000])
-			game.displayHighScores(highScores)
 			game.lives = 3
 			game.playerSprite.reset()
 			pygame.display.flip()
