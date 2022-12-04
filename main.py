@@ -360,7 +360,7 @@ if __name__ == '__main__':
 
 				if event.type == ENEMYLASER:
 					game.enemyShoot()
-				elif (event.type == JOYBUTTONDOWN and (event.button == 1 or event.button == 0)) or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+				elif ((event.type == JOYBUTTONDOWN and (event.button == 1 or event.button == 0)) or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE)) and game.holdFire == False:
 					playerFire = True
 				elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: # exits active game
 					game.gameActive = False
