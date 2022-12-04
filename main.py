@@ -65,16 +65,16 @@ class Game:
     			if enemyRows == 5:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'red1')
     				self.enemies.add(ship)
-    			if enemyRows == 4:
+    			elif enemyRows == 4:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'red2')
     				self.enemies.add(ship)
-    			if enemyRows == 3:
+    			elif enemyRows == 3:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'green3')
     				self.enemies.add(ship)
-    			if enemyRows == 2:
+    			elif enemyRows == 2:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'blue4')
     				self.enemies.add(ship)
-    			if enemyRows == 1:
+    			elif enemyRows == 1:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'black5')
     				self.enemies.add(ship)
     			enemyColumns -= 1
@@ -251,7 +251,6 @@ class Game:
     		if self.lives <= 0:
     			self.endGame()
 
-
     def displayHighScores(self,highScores):
     	YPosition = 10
     	scoreText = self.font.render('High Scores', False,(255,255,255))
@@ -283,100 +282,89 @@ if __name__ == '__main__':
 	backgroundRect = backgroundSurface.get_rect(topleft = (0,0))
 	splashSurface = pygame.image.load('Images/splashBackground.png').convert_alpha()
 	splashSurfaceRect = splashSurface.get_rect(topleft = (0,0))
-
-	def test():
-		print('test')
-
-	test()
-
-	# joystick stuff
-	direction = pygame.math.Vector2() # for player controls
-	playerFire = False # joystick fire
-	motion = [0, 0] # player joystick axis
-	
-	# high scores
-	file = open('Saves/HighScores.txt', 'r')
-	text = file.readlines()
-	highScores = []
-	i = 0
-	while i <= 9:
-		score = int(text[i])
-		highScores.append(score)
-		i += 1
-	file.close()	
-
 	ENEMYLASER = pygame.USEREVENT + 1
 	pygame.time.set_timer(ENEMYLASER,800)
+	highScores = []
+	direction = pygame.math.Vector2() # for player controls
+	playerFire = False 
 
-	# joystick
-	pygame.joystick.init()
-	joysticks = [pygame.joystick.Joystick(i) for i in range(pygame.joystick.get_count())]
-	for joystick in joysticks:
-		print(joystick.get_name())
+	# controller setup
+	joystickCount = pygame.joystick.get_count()
+	if joystickCount != 0:
+		controller = pygame.joystick.Joystick(0)
+		controller.init()
+		print(controller.get_name())
 
-	while True:
+	def readHighScores():
+		file = open('Saves/HighScores.txt', 'r')
+		text = file.readlines()
+		i = 0
+		while i <= 9:
+			score = int(text[i])
+			highScores.append(score)
+			i += 1
+		file.close()
 
-		if abs(motion[0]) < 0.1:
-			motion[0] = 0
-		if abs(motion[1]) < 0.1:
-			motion[1] = 0
-
-		#direction.x = motion[0]
-		#direction.y = motion[1]
-
-		#print(direction.x, direction.y)
-		
-
-		if game.holdFire == False:
-			game.player.update(direction,playerFire)
-
+	def eventHandling():
 		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
+			if event.type == pygame.QUIT: # whole game code
 				pygame.quit()
 				sys.exit()
-			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-				game.gameActive = True
-				game.gameOverTimer = 400
-				game.respawnPlayer()
-			if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-				game.gameActive = False
-				game.gameOverTimer = -1
-				game.lives = 0
-				game.score = 0
-				game.endGame()
-			if event.type == ENEMYLASER:
-				game.enemyShoot()
+			
 
-			# controller code
-			if game.gameActive:
-				if event.type == JOYBUTTONDOWN:
-					if event.button == 1: # shoot button
-						playerFire = True
-				
-				if event.type == JOYAXISMOTION:
-					#if event.axis < 2:
-						#motion[event.axis] = event.value
-					if event.axis == 0:
-						if event.value < 0: 
-							direction.x = -1
-						elif event.value > 0: 
-							direction.x = 1
-						else:
-							direction.x = 0
-					if event.axis == 1:
-						if event.value < 0: direction.y = -1
-						if event.value > 0: direction.y = 1
+			if game.gameActive == False: # if the game is not active
+				if (event.type == pygame.KEYDOWN and event.key == pygame.K_p) or (event.type == JOYBUTTONDOWN and event.button == 9):
+					game.gameActive = True
+					game.gameOverTimer = 400
+					game.respawnPlayer()
 
-				# pass direction to player update
-				if game.holdFire == False:
-					game.player.update(direction,playerFire)
+			
 
-			else: #game not active
-				if event.type == JOYBUTTONDOWN:
-					if event.button == 9:
-						game.gameActive = True
-						game.respawnPlayer()
+			if game.gameActive: # if game is active code
+				playerFire = False
 
+				if event.type == ENEMYLASER:
+					game.enemyShoot()
+				elif (event.type == JOYBUTTONDOWN and event.button == 1) or (event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE):
+					playerFire = True
+				elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: # exits active game
+					game.gameActive = False
+					game.gameOverTimer = -1
+					game.lives = 0
+					game.score = 0
+					game.endGame()
+
+				keyPressed = pygame.key.get_pressed() # keyboard input for moving the ship
+
+				if keyPressed[pygame.K_w]:
+					direction.y = -1
+				elif keyPressed[pygame.K_s]:
+					direction.y = 1
+				else:
+					direction.y = 0
+
+				if keyPressed[pygame.K_d]:
+					direction.x = 1
+				elif keyPressed[pygame.K_a]:
+					direction.x = -1
+				else:
+					direction.x = 0
+
+				game.player.update(direction,playerFire)
+
+	def playerController(): # controls axis movement only
+		if joystickCount != 0:
+			if abs(controller.get_axis(0)) > 0.1:
+				direction.x = controller.get_axis(0)
+			if abs(controller.get_axis(1)) > 0.1:
+				direction.y = controller.get_axis(1)
+
+			game.player.update(direction,playerFire)
+
+	readHighScores()
+
+	while True:
+		eventHandling()
 
 		if game.gameActive: # If game is active
 			screen.blit(backgroundSurface,backgroundRect)
@@ -387,36 +375,7 @@ if __name__ == '__main__':
 			screen.blit(livesSurface, livesRect)
 			pygame.display.flip()
 			clock.tick(60)
-
-			# Player controls
-			keyPressed = pygame.key.get_pressed()
-
-			if keyPressed[pygame.K_w]:
-				direction.y = -1
-			elif keyPressed[pygame.K_s]:
-				direction.y = 1
-			else:
-				direction.y = 0
-
-			if keyPressed[pygame.K_d]:
-				direction.x = 1
-			elif keyPressed[pygame.K_a]:
-				direction.x = -1
-			else:
-				direction.x = 0
-
-
-			if keyPressed[pygame.K_SPACE]: # firing code
-				playerFire = True
-			else:
-				playerFire = False
-
-			# pass direction to player update
-			if game.holdFire == False and keyPressed:
-				game.player.update(direction,playerFire)
-
-
-
+			playerController()
 
 		else:               # If game is inactive
 			lastScoreDisplay = game.font.render('Last Score: ' + str(game.lastScore), False, (255,255,255))
