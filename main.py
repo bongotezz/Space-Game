@@ -64,19 +64,15 @@ class Game:
     		while enemyColumns > 0:
     			if enemyRows == 5:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'red1')
-    				self.enemies.add(ship)
     			elif enemyRows == 4:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'red2')
-    				self.enemies.add(ship)
     			elif enemyRows == 3:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'green3')
-    				self.enemies.add(ship)
     			elif enemyRows == 2:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'blue4')
-    				self.enemies.add(ship)
     			elif enemyRows == 1:
     				ship = Enemy(bounds, 50 + (enemyOffset * (enemyColumns - 1)), 150 + (enemyOffset * (enemyRows - 1)), 'black5')
-    				self.enemies.add(ship)
+    			self.enemies.add(ship)
     			enemyColumns -= 1
     		enemyRows -= 1
 
@@ -138,10 +134,12 @@ class Game:
     		self.playerSprite.lasers.empty()
     		self.explosions.empty()
 
+    		self.extraLifeCounter = 1
+
     		highScores.append(self.score)
     		highScores.sort(reverse=True)
-    		if len(highScores) > 9:
-    			del highScores[10]
+    		if len(highScores) > 10:
+    			highScores.pop(-1)
     		file = open('Saves/HighScores.txt', 'w')
     		for score in highScores:
     			file.write(str(score) + '\n')
@@ -252,13 +250,13 @@ class Game:
     			self.endGame()
 
     def displayHighScores(self,highScores):
-    	YPosition = 10
+    	YPosition = 20
     	scoreText = self.font.render('High Scores', False,(255,255,255))
     	scoreTextRect = scoreText.get_rect(center = (bounds[0] / 2,YPosition))
     	screen.blit(scoreText,scoreTextRect)
     	YPosition += 90
     	i = 0
-    	while i <= 9:
+    	while i <= len(highScores) - 1:
     		scoreText = self.font.render(str(highScores[i]), False,(255,255,255))
     		scoreTextRect = scoreText.get_rect(center = (bounds[0] / 2,YPosition))
     		screen.blit(scoreText,scoreTextRect)
@@ -278,15 +276,35 @@ if __name__ == '__main__':
 	scoreRect = scoreSurface.get_rect(center = (150, 50))
 	livesSurface = game.font.render('Lives: ' + str(game.lives), False, (255,255,255))
 	livesRect = livesSurface.get_rect(center = (WIDTH - 150,50))
-	backgroundSurface = pygame.image.load('Images/background2.png').convert_alpha()
-	backgroundRect = backgroundSurface.get_rect(topleft = (0,0))
-	splashSurface = pygame.image.load('Images/splashBackground.png').convert_alpha()
-	splashSurfaceRect = splashSurface.get_rect(topleft = (0,0))
 	ENEMYLASER = pygame.USEREVENT + 1
 	pygame.time.set_timer(ENEMYLASER,800)
 	highScores = []
 	direction = pygame.math.Vector2() # for player controls
-	playerFire = False 
+	playerFire = False
+
+	# screens
+	backgroundSurface = pygame.image.load('Images/background2.png').convert_alpha()
+	backgroundRect = backgroundSurface.get_rect(topleft = (0,0))
+	splashSurface = pygame.image.load('Images/splashBackground.png').convert_alpha()
+	splashSurfaceRect = splashSurface.get_rect(topleft = (0,0))
+	controlsSurface = pygame.image.load('Images/controls.png').convert_alpha()
+	controlsSurfaceRect = controlsSurface.get_rect(topleft = (0,0))
+	creditsSurface = pygame.image.load('Images/credits.png').convert_alpha()
+	creditsSurfaceRect = controlsSurface.get_rect(topleft = (0,0))
+	screenDisplayed = 'none' # none is for splash screen. Controls, High Scores, and Credits are possibilities
+	
+	# button section
+	buttons = pygame.sprite.Group()
+	highScoreButton = Button(bounds, 'active', (50, HEIGHT - 250), 'High Scores')
+	buttons.add(highScoreButton)
+	controlsButton = Button(bounds, 'inactive', (50, HEIGHT - 200), 'Controls')
+	buttons.add(controlsButton)
+	creditsButton = Button(bounds, 'inactive', (50, HEIGHT - 150), 'Credits')
+	buttons.add(creditsButton)
+
+	backButtons = pygame.sprite.Group()
+	backButton = Button(bounds, 'inactive', (WIDTH - 250, HEIGHT - 50), 'Back')
+	backButtons.add(backButton)
 
 	# controller setup
 	joystickCount = pygame.joystick.get_count()
@@ -299,9 +317,11 @@ if __name__ == '__main__':
 		file = open('Saves/HighScores.txt', 'r')
 		text = file.readlines()
 		i = 0
-		while i <= 9:
+		while i <= len(text) -1:
 			score = int(text[i])
 			highScores.append(score)
+			if len(highScores) > 10:
+				highScores.pop(-1)
 			i += 1
 		file.close()
 
@@ -310,15 +330,15 @@ if __name__ == '__main__':
 			if event.type == pygame.QUIT: # whole game code
 				pygame.quit()
 				sys.exit()
-			
 
 			if game.gameActive == False: # if the game is not active
 				if (event.type == pygame.KEYDOWN and event.key == pygame.K_p) or (event.type == JOYBUTTONDOWN and event.button == 9):
 					game.gameActive = True
 					game.gameOverTimer = 400
 					game.respawnPlayer()
-
-			
+				elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+					pygame.quit()
+					sys.exit()
 
 			if game.gameActive: # if game is active code
 				playerFire = False
@@ -377,14 +397,56 @@ if __name__ == '__main__':
 			clock.tick(60)
 			playerController()
 
-		else:               # If game is inactive
+		elif game.gameActive == False and screenDisplayed == 'none':               # If game is inactive
 			lastScoreDisplay = game.font.render('Last Score: ' + str(game.lastScore), False, (255,255,255))
 			lastScoreDisplayRect = lastScoreDisplay.get_rect(center = (WIDTH / 2, HEIGHT - 50))
 			screen.blit(splashSurface,splashSurfaceRect)
 			screen.blit(lastScoreDisplay,lastScoreDisplayRect)
 			game.lives = 3
 			game.playerSprite.reset()
+			buttons.update()
+			buttons.draw(screen)
+			for b in buttons:
+				b.addLabel(screen)
+				if b.clicked:
+					b.clicked = False
+					screenDisplayed = b.label
 			pygame.display.flip()
+
+		elif game.gameActive == False and screenDisplayed == 'High Scores':
+			screen.blit(backgroundSurface,backgroundRect)
+			game.displayHighScores(highScores)
+			backButtons.update()
+			backButtons.draw(screen)
+			for b in backButtons:
+				b.addLabel(screen)
+				if b.clicked:
+					b.clicked = False
+					screenDisplayed = 'none'
+			pygame.display.flip()
+
+		elif game.gameActive == False and screenDisplayed == 'Controls':
+			screen.blit(controlsSurface,controlsSurfaceRect)
+			backButtons.update()
+			backButtons.draw(screen)
+			for b in backButtons:
+				b.addLabel(screen)
+				if b.clicked:
+					b.clicked = False
+					screenDisplayed = 'none'
+			pygame.display.flip()
+
+		elif game.gameActive == False and screenDisplayed == 'Credits':
+			screen.blit(creditsSurface,creditsSurfaceRect)
+			backButtons.update()
+			backButtons.draw(screen)
+			for b in backButtons:
+				b.addLabel(screen)
+				if b.clicked:
+					b.clicked = False
+					screenDisplayed = 'none'
+			pygame.display.flip()
+
 
 		
 		
