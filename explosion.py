@@ -12,13 +12,13 @@ class Explosion(pygame.sprite.Sprite):
 
     	if self.smoke == 0:
     		self.image = pygame.image.load('Images/smoke1.png').convert_alpha()    		
-    	if self.smoke == 1:
+    	elif self.smoke == 1:
     		self.image = pygame.image.load('Images/smoke2.png').convert_alpha()
-    	if self.smoke == 2:
+    	elif self.smoke == 2:
     		self.image = pygame.image.load('Images/smoke3.png').convert_alpha()
-    	if self.smoke == 3:
+    	elif self.smoke == 3:
     		self.image = pygame.image.load('Images/smoke4.png').convert_alpha()
-    	if self.smoke == 4:
+    	else:
     		self.image = pygame.image.load('Images/smoke3.png').convert_alpha()
 
     	if bomb:
