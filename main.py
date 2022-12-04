@@ -13,6 +13,8 @@ class Game:
 
     	# Lives and score setup
     	self.lives = 3
+    	self.extraLifePoints = 25000
+    	self.extraLifeCounter = 1
     	self.score = 0
     	self.highScore = 0
     	self.respawnTime = 200 # Used for delay between death and reapawn
@@ -116,7 +118,6 @@ class Game:
     				explosion.kill()
     				self.endGame()
     				
-
     def endGame(self):
     	self.lives -= 1
     	print(self.lives)
@@ -145,9 +146,10 @@ class Game:
     	if self.enemies.sprites():
     		if not self.holdFire:
     			randomEnemy = choice(self.enemies.sprites())
-    			laserSprite = Laser(bounds,False,randomEnemy.rect.centerx,randomEnemy.rect.centery)
-    			self.enemyLasers.add(laserSprite)
-    			self.laserSound.play()
+    			if randomEnemy.onScreen:
+    				laserSprite = Laser(bounds,False,randomEnemy.rect.centerx,randomEnemy.rect.centery)
+    				self.enemyLasers.add(laserSprite)
+    				self.laserSound.play()
 
     def respawnPlayer(self):
     	if not self.player:
@@ -184,10 +186,11 @@ class Game:
     		self.respawnTime = 200
     		self.holdFire = False
     		self.playerSprite.reset()
-    		
 
-
-
+    def extraLifeCheck(self):
+    	if self.extraLifePoints * self.extraLifeCounter <= self.score:
+    		self.lives += 1
+    		self.extraLifeCounter += 1
 
     def run(self):
     	if self.gameActive:
@@ -223,6 +226,7 @@ class Game:
     		self.bombExplosions.draw(screen)
 
     		self.checkCollisions()
+    		self.extraLifeCheck()
 
     		if self.holdFire:
     			self.respawnTimer()
@@ -233,7 +237,7 @@ class Game:
 if __name__ == '__main__':
 	pygame.init()
 	WIDTH = 900 # Screen width 900
-	HEIGHT = 1080 # Screen height 1000
+	HEIGHT = 1080 # Screen height 1080
 	bounds = [WIDTH, HEIGHT]
 	screen = pygame.display.set_mode((bounds))
 	clock = pygame.time.Clock()
@@ -253,7 +257,8 @@ if __name__ == '__main__':
 	scoreRect = scoreSurface.get_rect(center = (150, 50))
 	livesSurface = game.font.render('Lives: ' + str(game.lives), False, (255,255,255))
 	livesRect = livesSurface.get_rect(center = (WIDTH - 150,50))
-	direction = pygame.math.Vector2()
+	backgroundSurface = pygame.image.load('Images/background2.png').convert_alpha()
+	backgroundRect = backgroundSurface.get_rect(topleft = (0,0))
 	
 
 	ENEMYLASER = pygame.USEREVENT + 1
@@ -271,7 +276,8 @@ if __name__ == '__main__':
 				game.enemyShoot()
 
 		if game.gameActive: # If game is active
-			screen.fill((30,30,30))
+			#screen.fill((30,30,30))
+			screen.blit(backgroundSurface,backgroundRect)
 			game.run()
 			scoreSurface = game.font.render('Score ' + str(game.score), False, (255,255,255))
 			screen.blit(scoreSurface,scoreRect)
@@ -279,30 +285,6 @@ if __name__ == '__main__':
 			screen.blit(livesSurface, livesRect)
 			pygame.display.flip()
 			clock.tick(60)
-
-			# Player control input
-			keyPressed = pygame.key.get_pressed()
-
-			if keyPressed[pygame.K_w]:
-				direction.y = -1
-			elif keyPressed[pygame.K_s]:
-				direction.y = 1
-			else:
-				direction.y = 0
-
-			if keyPressed[pygame.K_d]:
-				direction.x = 1
-			elif keyPressed[pygame.K_a]:
-				direction.x = -1
-			else:
-				direction.x = 0
-
-			if direction.magnitude() != 0:
-				direction = direction.normalize()
-
-			
-
-
 		else:               # If game is inactive
 			highScoreDisplay = game.font.render('High Score: ' + str(game.highScore), False, (255,255,255))
 			highScoreDisplayRect = highScoreDisplay.get_rect(center = (WIDTH / 2, 50))
