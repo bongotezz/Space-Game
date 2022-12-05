@@ -357,6 +357,8 @@ if __name__ == '__main__':
 
 			if game.gameActive: # if game is active code
 				playerFire = False
+				direction.x = 0
+				direction.y = 0
 
 				if event.type == ENEMYLASER:
 					game.enemyShoot()
@@ -378,7 +380,8 @@ if __name__ == '__main__':
 			if abs(controller.get_axis(1)) > 0.1:
 				direction.y = controller.get_axis(1)
 
-			game.player.update(direction,playerFire)
+			if abs(controller.get_axis(0)) > 0.1 or abs(controller.get_axis(1)) > 0.1:
+				game.player.update(direction,playerFire)
 
 	readHighScores()
 
